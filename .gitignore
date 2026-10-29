@@ -1,0 +1,6 @@
+# Generated CMake / Visual Studio files
+/build/
+/out/
+/.vs/
+/.idea/
+CMakeUserPresets.json
