@@ -1,0 +1,47 @@
+name: Build SENVI GLASS VST3 (Windows x64)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-vst3:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout source files
+        uses: actions/checkout@v4
+
+      - name: Configure CMake for Visual Studio 2022 x64
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Compile Release VST3
+        run: cmake --build build --config Release --target SenviGlass_VST3 --parallel 2
+
+      - name: Verify Windows x64 VST3 bundle
+        shell: pwsh
+        run: |
+          $bundle = 'build/SenviGlass_artefacts/Release/VST3/SENVI GLASS.vst3'
+          if (-not (Test-Path -LiteralPath $bundle -PathType Container)) {
+            throw "Expected VST3 bundle directory not found: $bundle"
+          }
+          $binary = Get-ChildItem -LiteralPath $bundle -Recurse -File -Filter '*.vst3' |
+            Where-Object { $_.FullName -match 'x86_64-win' } |
+            Select-Object -First 1
+          if (-not $binary) {
+            throw 'No compiled x64 VST3 module found in Contents/x86_64-win.'
+          }
+          Write-Host "VST3 bundle verified. Binary: $($binary.FullName)"
+
+      - name: Upload ready-to-install VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: SENVI-GLASS-Windows-x64-VST3
+          path: build/SenviGlass_artefacts/Release/VST3/
+          if-no-files-found: error
+          retention-days: 30
